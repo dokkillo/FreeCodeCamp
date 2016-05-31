@@ -47,6 +47,14 @@
     "dataSource": "db",
     "public": true
   },
+  "pledge": {
+    "dataSource": "db",
+    "public": true
+  },
+  "promo": {
+    "dataSource": "db",
+    "public": true
+  },
   "user": {
     "dataSource": "db",
     "public": true
@@ -56,6 +64,10 @@
     "public": true
   },
   "userIdentity": {
+    "dataSource": "db",
+    "public": true
+  },
+  "flyer": {
     "dataSource": "db",
     "public": true
   }

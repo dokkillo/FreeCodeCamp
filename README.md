@@ -4,130 +4,72 @@
 
 [![Join the chat at https://gitter.im/freecodecamp/freecodecamp](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/freecodecamp/freecodecamp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-Welcome to Free Code Camp's open source codebase!
+Welcome to Free Code Camp's open source codebase and curriculum!
 =======================
 
-Free Code Camp is an open-source community of busy people who learn to code and build projects for nonprofits.
-
-Our campers (students) start by working through our free, self-paced, browser-based curriculum. Next, they build several practice projects. Finally, we pair two campers together with a stakeholder from a nonprofit organization, and help them build the solution the nonprofit has requested.
+Free Code Camp is a friendly open-source community where you learn to code and help nonprofits.
 
 **We help our campers build job-worthy portfolios of real apps used by real people, while helping nonprofits.**
 
-80% of our campers are over 25, and nearly a fifth of our campers are women.
+You start by working through our self-paced, browser-based full stack JavaScript curriculum.
 
-This code is running live at [FreeCodeCamp.com](http://www.FreeCodeCamp.com). We also have [Gitter](https://gitter.im/FreeCodeCamp/FreeCodeCamp), a [blog](http://blog.freecodecamp.com), and even a [Twitch.tv channel](http://twitch.tv/freecodecamp).
+### By working through our curriculum, you can earn four certifications:
+##### 1. Front End Certification
+The first section will teach you the basics of how webpages work and also introduce you to JavaScript programming.
 
-[Join our community here](http://www.freecodecamp.com/signin).
+Skills you'll practice include `HTML, CSS, JavaScript, jQuery` and `Bootstrap`.
 
-*Note: We're currently very close to moving from Express to Loopback. As such, please keep in mind that the instructions here for setting up and running the project do not directly translate to the staging branch. Additionally, the file structure is quite a bit different. As always, the staging branch is the appropriate place to branch off of to fix/add something.*
+To earn this certification, you'll build **10 front-end projects** and implement many **JavaScript algorithms**.
+
+##### 2. Data Visualization Certification
+The second section builds upon the first and introduces you to more advanced topics such as `Sass, React` and `D3`.
+
+To earn this certification, you'll build **5 React-apps** and **5 Data visualization apps** using `D3.js`.
+
+##### 3. Back End Certification
+The third section introduces you to back end development using `Node.js, Express,` and `MongoDB`. It also teaches you about the important concept of source control using `Git`.
+
+To earn this certification, you'll build **5 APIs** and **5 full stack apps**.
+
+We will accept solutions implemented in _any_ programming language, as long as both a live demo and the source code are publicly accessible.
+
+##### 4. Full Stack Certification
+The fourth section is where you'll get **real-world experience** by working on projects for **nonprofits**.
+We'll pair you with another camper, an agile project manager, and a stakeholder from a nonprofit organization. Together, you'll plan, build and maintain apps that help that nonprofit carry out its mission more effectively.
+
+For this certification, you'll work on **two projects from scratch** and then **maintain/upgrade two existing projects**.
+
+---
+
+This code is running live at [FreeCodeCamp.com](http://www.FreeCodeCamp.com). We also have [Gitter chat room](https://gitter.im/FreeCodeCamp/FreeCodeCamp), a [Medium publication](http://medium.freecodecamp.com), and even a [YouTube channel](http://youtube.com/freecodecamp).
+
+### [Join our community here](http://www.freecodecamp.com/signin).
 
 Wiki
 ------------
 
 We would love your help expanding our [wiki](https://github.com/freecodecamp/freecodecamp/wiki). Our goal is to become a great resource for people learning to code, building local coding communities, and applying for coding jobs.
 
+Found a bug?
+------------
+
+Do not file an issue until you have followed these steps:
+
+1. Read [Help I've Found a Bug](https://github.com/FreeCodeCamp/FreeCodeCamp/wiki/FreeCodeCamp-Report-Bugs) wiki page and follow the instructions there.
+2. Ask for confirmation in the appropriate [Help Room](https://github.com/FreeCodeCamp/FreeCodeCamp/wiki/Help-Rooms).
+3. Please *do not* open an issue without a 3rd party confirmation of your problem.
+
 Contributing
 ------------
 
-We welcome pull requests from Free Code Camp campers (our students) and seasoned JavaScript developers alike! Follow these steps to contribute:
-
-1.  Check our [public Waffle Board](https://waffle.io/freecodecamp/freecodecamp).
-2.  Pick an issue that nobody has claimed and start working on it. If your issue isn't on the board, open an issue. If you think you can fix it yourself, start working on it. Feel free to ask for help in our [Gitter](https://gitter.im/FreeCodeCamp/FreeCodeCamp).
-3.  Fork the project ([Need help with forking a project?](https://help.github.com/articles/fork-a-repo/)). You'll do all of your work on your forked copy.
-4.  Create a branch specific to the issue or feature you are working on. Push your work to that branch. ([Need help with branching?](https://github.com/Kunena/Kunena-Forum/wiki/Create-a-new-branch-with-git-and-manage-branches))
-5.  Name the branch something like `fix/xxx` or `feature/xxx` where `xxx` is a short description of the changes or feature you are attempting to add. For example `fix/email-login` would be a branch where I fix something specific to email login.
-6.  You should have [ESLint running in your editor](http://eslint.org/docs/user-guide/integrations.html), and it will highlight anything doesn't conform to [Free Code Camp's JavaScript Style Guide](https://github.com/FreeCodeCamp/FreeCodeCamp/wiki/Free-Code-Camp-JavaScript-Style-Guide) (you can find a summary of those rules [here](https://github.com/FreeCodeCamp/FreeCodeCamp/blob/staging/.eslintrc). Please do not ignore any linting errors, as they are meant to **help** you and to ensure a clean and simple code base. Make sure none of your JavaScript is longer than 80 characters per line.
-7.  Once your code is ready, submit a [pull request](https://github.com/FreeCodeCamp/FreeCodeCamp/wiki/Pull-Request-Contribute) from your branch to Free Code Camp's `staging` branch. We'll do a quick code review and give you feedback, then iterate from there. It may also be helpful to read about git [rebasing](https://github.com/FreeCodeCamp/FreeCodeCamp/wiki/git-rebase).
-
-Prerequisites
--------------
-
-- [MongoDB](http://www.mongodb.org/downloads)
-- [Node.js](http://nodejs.org)
-
-Getting Started
----------------
-
-The easiest way to get started is to clone the repository:
-
-```bash
-# Get the latest snapshot
-git clone --depth=1 https://github.com/freecodecamp/freecodecamp.git freecodecamp
-
-cd freecodecamp
-
-# Install NPM dependencies
-npm install
-
-# Install Bower dependencies
-bower install
-
-# Create a .env file and populate it with the necessary API keys and secrets:
-touch .env
-
-# Install Gulp globally
-npm install -g gulp
-```
-
-Edit your `.env` file with the following API keys accordingly (if you only use email login, only the `MONGOHQ_URL`, `SESSION_SECRET`, `MANDRILL_USER` and `MANDRILL_PASSWORD` fields are necessary. Keep in mind if you want to use more services you'll have to get your own API keys for those services.
-
-```
-MONGOHQ_URL='mongodb://localhost:27017/freecodecamp'
-
-FACEBOOK_ID=stuff
-FACEBOOK_SECRET=stuff
-
-GITHUB_ID=stuff
-GITHUB_SECRET=stuff
-
-GOOGLE_ID=stuff
-GOOGLE_SECRET=stuff
-
-LINKEDIN_ID=stuff
-LINKEDIN_SECRET=stuff
-
-MANDRILL_PASSWORD=stuff
-MANDRILL_USER=stuff
-
-TRELLO_KEY=stuff
-TRELLO_SECRET=stuff
-
-TWITTER_KEY=stuff
-TWITTER_SECRET=stuff
-TWITTER_TOKEN=stuff
-TWITTER_TOKEN_SECRET=stuff
-
-BLOGGER_KEY=stuff
-
-SESSION_SECRET=secretstuff
-COOKIE_SECRET='this is a secret'
-
-PEER=stuff
-DEBUG=true
-```
-
-```bash
-# Start the mongo server
-mongod
-
-# Create your mongo database.
-# Type "mongo" in your terminal to access the mongo shell
-use freecodecamp
-# Exit the mongo shell with control + d
-
-# Seed your database with the challenges
-node seed/
-
-# start the application
-gulp
-```
+We welcome pull requests from Free Code Camp campers (our students) and seasoned JavaScript developers alike! Please follow [these steps](CONTRIBUTING.md) to contribute.
 
 License
 -------
 
 The BSD-3-Clause
 
-Copyright (c) 2015, Free Code Camp
+Copyright (c) 2016, Free Code Camp
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:

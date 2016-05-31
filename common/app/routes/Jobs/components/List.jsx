@@ -1,72 +1,75 @@
 import React, { PropTypes } from 'react';
-import { PanelGroup, Thumbnail, Panel, Well } from 'react-bootstrap';
-import moment from 'moment';
+import classnames from 'classnames';
+import { LinkContainer } from 'react-router-bootstrap';
+import { ListGroup, ListGroupItem } from 'react-bootstrap';
+import PureComponent from 'react-pure-render/component';
 
-export default React.createClass({
-  displayName: 'ListJobs',
+export default class ListJobs extends PureComponent {
+  static displayName = 'ListJobs';
 
-  propTypes: {
+  static propTypes = {
     handleClick: PropTypes.func,
     jobs: PropTypes.array
-  },
+  };
 
-  renderJobs(handleClick, jobs =[]) {
-    const thumbnailStyle = {
-      backgroundColor: 'white',
-      maxHeight: '100px',
-      maxWidth: '100px'
-    };
+  addLocation(locale) {
+    if (!locale) {
+      return null;
+    }
+    return (
+      <span className='hidden-xs hidden-sm'>
+        { locale }
+      </span>
+    );
+  }
 
-    return jobs.map((
-      {
-        id,
-        company,
-        position,
-        description,
-        logo,
-        city,
-        state,
-        email,
-        phone,
-        postedOn
-      },
-      index
-    ) => {
-      const header = (
-        <div>
-          <h4 style={{ display: 'inline-block' }}>{ company }</h4>
-          <h5
-            className='pull-right hidden-xs hidden-md'
-            style={{ display: 'inline-block' }}>
-            { position }
-          </h5>
-        </div>
-      );
+  renderJobs(handleClick, jobs = []) {
+    return jobs
+    .filter(({ isPaid, isApproved, isFilled }) => {
+      return isPaid && isApproved && !isFilled;
+    })
+    .map(({
+      id,
+      company,
+      position,
+      isHighlighted,
+      locale
+    }) => {
+
+      const className = classnames({
+        'jobs-list': true,
+        'col-xs-12': true,
+        'jobs-list-highlight': isHighlighted
+      });
+
+      const to = `/jobs/${id}`;
+
       return (
-        <Panel
-          collapsible={ true }
-          eventKey={ index }
-          header={ header }
-          key={ id }>
-          <Well>
-            <Thumbnail
-              alt={ company + 'company logo' }
-              src={ logo }
-              style={ thumbnailStyle } />
-            <Panel>
-              Position: { position }
-              Location: { city }, { state }
-              <br />
-              Contact: { email || phone || 'N/A' }
-              <br />
-              Posted On: { moment(postedOn).format('MMMM Do, YYYY') }
-            </Panel>
-            <p onClick={ () => handleClick(id) }>{ description }</p>
-          </Well>
-        </Panel>
+        <LinkContainer
+          key={ id }
+          to={ to }>
+          <ListGroupItem
+            className={ className }
+            onClick={ () => handleClick(id) }>
+            <div>
+              <h4 className='pull-left' style={{ display: 'inline-block' }}>
+                <bold>{ company }</bold>
+                {' '}
+                <span className='hidden-xs hidden-sm'>
+                  - { position }
+                </span>
+              </h4>
+              <h4
+                className='pull-right'
+                style={{ display: 'inline-block' }}>
+                { this.addLocation(locale) }
+              </h4>
+            </div>
+          </ListGroupItem>
+        </LinkContainer>
       );
     });
-  },
+  }
 
   render() {
     const {
@@ -75,9 +78,9 @@ export default React.createClass({
     } = this.props;
 
     return (
-      <PanelGroup>
+      <ListGroup>
         { this.renderJobs(handleClick, jobs) }
-      </PanelGroup>
+      </ListGroup>
     );
   }
-});
+}

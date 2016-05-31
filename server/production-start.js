@@ -1,5 +1,5 @@
 // this ensures node understands the future
-require('babel/register');
+require('babel-register');
 
 var startTime = Date.now();
 var timeoutHandler;
@@ -18,14 +18,14 @@ var onConnect = function() {
 
 var timeoutHandler = setTimeout(function() {
   var message =
-    'db did not after  ' +
+    'db did not connect after  ' +
     (Date.now() - startTime) +
-    ' ms connect crashing hard';
+    ' ms --- crashing hard';
 
   console.log(message);
   // purposely shutdown server
   // pm2 should restart this in production
   throw new Error(message);
-}, 5000);
+}, 15000);
 
 app.dataSources.db.on('connected', onConnect);

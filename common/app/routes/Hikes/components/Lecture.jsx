@@ -1,71 +1,102 @@
 import React, { PropTypes } from 'react';
-import { Button, Col, Row, Panel } from 'react-bootstrap';
-import { Navigation } from 'react-router';
-import Vimeo from 'react-vimeo';
-import debugFactory from 'debug';
+import { connect } from 'react-redux';
+import { Button, Col, Row } from 'react-bootstrap';
+import Youtube from 'react-youtube';
+import { createSelector } from 'reselect';
+import debug from 'debug';
 
-const debug = debugFactory('freecc:hikes');
+import { hardGoTo } from '../../../redux/actions';
+import { toggleQuestionView } from '../redux/actions';
+import { getCurrentHike } from '../redux/selectors';
 
-export default React.createClass({
-  displayName: 'Lecture',
-  mixins: [Navigation],
+const log = debug('fcc:hikes');
 
-  propTypes: {
-    currentHike: PropTypes.object,
-    params: PropTypes.object
-  },
+const mapStateToProps = createSelector(
+  getCurrentHike,
+  (currentHike) => {
+    const {
+      dashedName,
+      description,
+      challengeSeed: [id] = [0]
+    } = currentHike;
+    return {
+      id,
+      dashedName,
+      description
+    };
+  }
+);
 
-  handleError: debug,
+export class Lecture extends React.Component {
+  static displayName = 'Lecture';
 
-  handleFinish() {
-    debug('loading questions');
-    const { dashedName } = this.props.params;
-    this.transitionTo(`/hikes/${dashedName}/questions/1`);
-  },
+  static propTypes = {
+    // actions
+    toggleQuestionView: PropTypes.func,
+    // ui
+    id: PropTypes.string,
+    description: PropTypes.array,
+    dashedName: PropTypes.string,
+    hardGoTo: PropTypes.func
+  };
+
+  componentWillMount() {
+    if (!this.props.id) {
+      this.props.hardGoTo('/map');
+    }
+  }
+
+  shouldComponentUpdate(nextProps) {
+    const { props } = this;
+    return nextProps.id !== props.id;
+  }
+
+  handleError: log;
 
   renderTranscript(transcript, dashedName) {
     return transcript.map((line, index) => (
-      <p key={ dashedName + index }>{ line }</p>
+      <p
+        className='lead text-left'
+        dangerouslySetInnerHTML={{__html: line}}
+        key={ dashedName + index } />
     ));
-  },
+  }
 
   render() {
     const {
-      title,
-      challengeSeed = ['1'],
-      description = []
-    } = this.props.currentHike;
-    const { dashedName } = this.props.params;
+      id = '1',
+      description = [],
+      toggleQuestionView
+    } = this.props;
 
-    const [ id ] = challengeSeed;
+    const dashedName = 'foo';
 
-    const videoTitle = <h2>{ title }</h2>;
     return (
       <Col xs={ 12 }>
         <Row>
-          <Panel className={ 'text-center' } title={ videoTitle }>
-            <Vimeo
-              onError={ this.handleError }
-              onFinish= { this.handleFinish }
-              videoId={ id } />
-          </Panel>
+          <Youtube
+            id='player_1'
+            onError={ this.handleError }
+            videoId={ id } />
         </Row>
         <Row>
-          <Col xs={ 12 }>
-            <Panel>
-              { this.renderTranscript(description, dashedName) }
-            </Panel>
-            <Panel>
-              <Button
-                block={ true }
-                bsSize='large'
-                onClick={ this.handleFinish }>
-                Take me to the Questions
-              </Button>
-            </Panel>
-          </Col>
+          <article>
+            { this.renderTranscript(description, dashedName) }
+          </article>
+          <Button
+            block={ true }
+            bsSize='large'
+            bsStyle='primary'
+            onClick={ toggleQuestionView }>
+            Take me to the Questions
+          </Button>
         </Row>
       </Col>
     );
   }
-});
+}
+
+export default connect(
+  mapStateToProps,
+  { hardGoTo, toggleQuestionView }
+)(Lecture);

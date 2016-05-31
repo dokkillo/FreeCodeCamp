@@ -1,88 +1,146 @@
 import React, { PropTypes } from 'react';
-import { contain } from 'thundercats-react';
-import { Row, Thumbnail, Panel, Well } from 'react-bootstrap';
-import moment from 'moment';
+import { compose } from 'redux';
+import { connect } from 'react-redux';
+import { push } from 'react-router-redux';
+import PureComponent from 'react-pure-render/component';
+import { createSelector } from 'reselect';
 
-const thumbnailStyle = {
-  backgroundColor: 'white',
-  maxHeight: '100px',
-  maxWidth: '100px'
-};
+import contain from '../../../utils/professor-x';
+import { fetchJobs } from '../redux/actions';
 
-export default contain(
+import ShowJob from './ShowJob.jsx';
+import JobNotFound from './JobNotFound.jsx';
+import { isJobValid } from '../utils';
+
+function shouldShowApply(
   {
-    store: 'jobsStore',
-    fetchAction: 'jobActions.getJob',
-    map({ currentJob }) {
-      return { job: currentJob };
-    },
-    getPayload({ params: { id }, job = {} }) {
-      return {
-        id,
-        isPrimed: job.id === id
-      };
-    },
-    // using es6 destructuring
-    shouldContainerFetch({ job = {} }, { params: { id } }
-    ) {
-      return job.id !== id;
-    }
+    isFrontEndCert: isFrontEndCertReq = false,
+    isBackEndCert: isBackEndCertReq = false
+  }, {
+    isFrontEndCert = false,
+    isBackEndCert = false
+  }
+) {
+  return (!isFrontEndCertReq && !isBackEndCertReq) ||
+    (isBackEndCertReq && isBackEndCert) ||
+    (isFrontEndCertReq && isFrontEndCert);
+}
+
+function generateMessage(
+  {
+    isFrontEndCert: isFrontEndCertReq = false,
+    isBackEndCert: isBackEndCertReq = false
   },
-  React.createClass({
-    displayName: 'ShowJob',
-    propTypes: {
-      job: PropTypes.object,
-      params: PropTypes.object
-    },
+  {
+    isFrontEndCert = false,
+    isBackEndCert = false,
+    isSignedIn = false
+  }
+) {
 
-    renderHeader({ company, position }) {
-      return (
-        <div>
-          <h4 style={{ display: 'inline-block' }}>{ company }</h4>
-          <h5
-            className='pull-right hidden-xs hidden-md'
-            style={{ display: 'inline-block' }}>
-            { position }
-          </h5>
-        </div>
-      );
-    },
+  if (!isSignedIn) {
+    return 'Must be signed in to apply';
+  }
+  if (isFrontEndCertReq && !isFrontEndCert) {
+    return 'This employer requires Free Code Camp’s Front ' +
+      'End Development Certification in order to apply';
+  }
+  if (isBackEndCertReq && !isBackEndCert) {
+    return 'This employer requires Free Code Camp’s Back ' +
+      'End Development Certification in order to apply';
+  }
+  if (isFrontEndCertReq && isFrontEndCertReq) {
+    return 'This employer requires the Front End Development Certification. ' +
+      "You've earned it, so feel free to apply.";
+  }
+  return 'This employer requires the Back End Development Certification. ' +
+    "You've earned it, so feel free to apply.";
+}
 
-    render() {
-      const { job = {} } = this.props;
-      const {
-        logo,
-        position,
-        city,
-        company,
-        state,
-        email,
-        phone,
-        postedOn,
-        description
-      } = job;
-
-      return (
-        <div>
-          <Row>
-            <Well>
-              <Thumbnail
-                alt={ company + 'company logo' }
-                src={ logo }
-                style={ thumbnailStyle } />
-              <Panel>
-                Position: { position }
-                Location: { city }, { state }
-                <br />
-                Contact: { email || phone || 'N/A' }
-                <br />
-                Posted On: { moment(postedOn).format('MMMM Do, YYYY') }
-              </Panel>
-              <p>{ description }</p>
-            </Well>
-          </Row>
-        </div>
-      );
-    }
+const mapStateToProps = createSelector(
+  state => state.app,
+  state => state.jobsApp.currentJob,
+  state => state.jobsApp.jobs.entities,
+  ({ username, isFrontEndCert, isBackEndCert }, currentJob, jobs) => ({
+    username,
+    isFrontEndCert,
+    isBackEndCert,
+    job: jobs[currentJob] || {}
   })
 );
+
+const bindableActions = {
+  push,
+  fetchJobs
+};
+
+const fetchOptions = {
+  fetchAction: 'fetchJobs',
+  getActionArgs({ params: { id } }) {
+    return [ id ];
+  },
+  isPrimed({ params: { id } = {}, job = {} }) {
+    return job.id === id;
+  },
+  // using es6 destructuring
+  shouldRefetch({ job }, { params: { id } }) {
+    return job.id !== id;
+  }
+};
+
+export class Show extends PureComponent {
+  static displayName = 'Show';
+
+  static propTypes = {
+    job: PropTypes.object,
+    isBackEndCert: PropTypes.bool,
+    isFrontEndCert: PropTypes.bool,
+    username: PropTypes.string
+  };
+
+  componentDidMount() {
+    const { job, push } = this.props;
+    // redirect user in client
+    if (!isJobValid(job)) {
+      push('/jobs');
+    }
+  }
+
+  render() {
+    const {
+      isBackEndCert,
+      isFrontEndCert,
+      job,
+      username
+    } = this.props;
+
+    if (!isJobValid(job)) {
+      return <JobNotFound />;
+    }
+
+    const isSignedIn = !!username;
+
+    const showApply = shouldShowApply(
+      job,
+      { isFrontEndCert, isBackEndCert }
+    );
+
+    const message = generateMessage(
+      job,
+      { isFrontEndCert, isBackEndCert, isSignedIn }
+    );
+
+    return (
+      <ShowJob
+        message={ message }
+        preview={ false }
+        showApply={ showApply }
+        { ...this.props }/>
+    );
+  }
+}
+
+export default compose(
+  connect(mapStateToProps, bindableActions),
+  contain(fetchOptions)
+)(Show);

@@ -1,7 +1,8 @@
 import { Observable } from 'rx';
 import debugFactory from 'debug';
+import { isEmail } from 'validator';
 
-const debug = debugFactory('freecc:user:remote');
+const debug = debugFactory('fcc:user:remote');
 
 function destroyAllRelated(id, Model) {
   return Observable.fromNodeCallback(
@@ -21,7 +22,7 @@ module.exports = function(app) {
     if (!id) {
       return next();
     }
-    Observable.combineLatest(
+    return Observable.combineLatest(
       destroyAllRelated(id, UserIdentity),
       destroyAllRelated(id, UserCredential),
       function(identData, credData) {
@@ -30,19 +31,20 @@ module.exports = function(app) {
           credData: credData
         };
       }
-    ).subscribe(
-      function(data) {
-        debug('deleted', data);
-      },
-      function(err) {
-        debug('error deleting user %s stuff', id, err);
-        next(err);
-      },
-      function() {
-        debug('user stuff deleted for user %s', id);
-        next();
-      }
-    );
+    )
+      .subscribe(
+        function(data) {
+          debug('deleted', data);
+        },
+        function(err) {
+          debug('error deleting user %s stuff', id, err);
+          next(err);
+        },
+        function() {
+          debug('user stuff deleted for user %s', id);
+          next();
+        }
+      );
   });
 
   // set email varified false on user email signup
@@ -56,9 +58,12 @@ module.exports = function(app) {
   });
 
   // send welcome email to new camper
-  User.afterRemote('create', function(ctx, user, next) {
+  User.afterRemote('create', function({ req, res }, user, next) {
     debug('user created, sending email');
-    if (!user.email) { return next(); }
+    if (!user.email || !isEmail(user.email)) { return next(); }
+    const redirect = req.session && req.session.returnTo ?
+      req.session.returnTo :
+      '/';
 
     var mailOptions = {
       type: 'email',
@@ -72,22 +77,22 @@ module.exports = function(app) {
         'Feel free to email us at this address if you have ',
         'any questions about Free Code Camp.\n',
         'And if you have a moment, check out our blog: ',
-        'blog.freecodecamp.com.\n\n',
+        'medium.freecodecamp.com.\n\n',
         'Good luck with the challenges!\n\n',
-        '- the Free Code Camp Volunteer Team'
+        '- the Free Code Camp Team'
       ].join('')
     };
 
     debug('sending welcome email');
-    Email.send(mailOptions, function(err) {
+    return Email.send(mailOptions, function(err) {
       if (err) { return next(err); }
-      ctx.req.logIn(user, function(err) {
+      return req.logIn(user, function(err) {
         if (err) { return next(err); }
 
-        ctx.req.flash('success', {
+        req.flash('success', {
           msg: [ "Welcome to Free Code Camp! We've created your account." ]
         });
-        ctx.res.redirect('/');
+        return res.redirect(redirect);
       });
     });
   });

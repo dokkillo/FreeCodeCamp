@@ -23,6 +23,16 @@
       "type": "array",
       "default": []
     },
+    "isBanned": {
+      "type": "boolean",
+      "default": false,
+      "description": "User is banned from posting to camper news"
+    },
+    "isCheater": {
+      "type": "boolean",
+      "default": false,
+      "description": "Users who are confirmed to break academic honesty policy are marked as cheaters"
+    },
     "isGithubCool": {
       "type": "boolean",
       "default": false
@@ -82,45 +92,6 @@
     "twitter": {
       "type": "string"
     },
-    "facebook": {
-      "type": "string"
-    },
-    "google": {
-      "type": "string"
-    },
-    "completedBonfires": {
-      "type": [
-        {
-          "id": "string",
-          "name": "string",
-          "completedWith": "string",
-          "completedDate": "string",
-          "solution": "string"
-        }
-      ],
-      "default": []
-    },
-    "uncompletedCoursewares": {
-      "type": "array",
-      "default": []
-    },
-    "completedCoursewares": {
-      "type": [
-        {
-          "completedDate": {
-            "type": "string",
-            "defaultFn": "now"
-          },
-          "id": "string",
-          "name": "string",
-          "completedWith": "string",
-          "solution": "string",
-          "githubLink": "string",
-          "verified": "boolean"
-        }
-      ],
-      "default": []
-    },
     "currentStreak": {
       "type": "number",
       "default": 0
@@ -133,13 +104,67 @@
       "type": "boolean",
       "default": true
     },
+    "sendNotificationEmail": {
+      "type": "boolean",
+      "default": true
+    },
+    "sendQuincyEmail": {
+      "type": "boolean",
+      "default": true
+    },
+    "isLocked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Campers profile does not show challenges/certificates to the public"
+    },
     "currentChallenge": {
       "type": {}
+    },
+    "isUniqMigrated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Campers completedChallenges array is free of duplicates"
+    },
+    "isHonest": {
+      "type": "boolean",
+      "default": false,
+      "description": "Camper has signed academic honesty policy"
+    },
+    "isFrontEndCert": {
+      "type": "boolean",
+      "defaut": false,
+      "description": "Camper is front end certified"
+    },
+    "isDataVisCert": {
+      "type": "boolean",
+      "defaut": false,
+      "description": "Camper is data visualization certified"
+    },
+    "isBackEndCert": {
+      "type": "boolean",
+      "default": false,
+      "description": "Campers is back end certified"
+    },
+    "isFullStackCert": {
+      "type": "boolean",
+      "default": false,
+      "description": "Campers is full stack certified"
+    },
+    "isChallengeMapMigrated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Migrate completedChallenges array to challenge map"
+    },
+    "challengeMap": {
+      "type": "object",
+      "default": {},
+      "description": "A map by id of all the user completed challenges"
     },
     "completedChallenges": {
       "type": [
         {
           "completedDate": "number",
+          "lastUpdated": "number",
           "id": "string",
           "name": "string",
           "completedWith": "string",
@@ -157,6 +182,16 @@
     "rand": {
       "type": "number",
       "index": true
+    },
+    "tshirtVote": {
+      "type": "number"
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "theme": {
+      "type": "string",
+      "default": "default"
     }
   },
   "validations": [],
@@ -169,6 +204,11 @@
     "identities": {
       "type": "hasMany",
       "model": "userIdentity",
+      "foreignKey": ""
+    },
+    "pledge": {
+      "type": "hasOne",
+      "model": "pledge",
       "foreignKey": ""
     }
   },
@@ -199,6 +239,20 @@
       "principalId": "$everyone",
       "permission": "ALLOW",
       "property": "giveBrowniePoints"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
+      "property": "updateEmail"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$owner",
+      "permission": "ALLOW",
+      "property": "updateTheme"
     }
   ],
   "methods": []

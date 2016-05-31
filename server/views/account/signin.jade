@@ -1,24 +1,65 @@
 extends ../layout
 block content
-    .jumbotron.text-center
-        h2 Sign in with one of these options:
-        a.btn.btn-lg.btn-block.btn-github.btn-social(href='/auth/github')
+    .text-center
+        h2 New to Free Code Camp?
+          br
+          .button-spacer
+          | Sign up now:
+        a.btn.btn-lg.btn-block.btn-social.btn-primary(href='/email-signup')
+            i.fa.fa-envelope
+            | Sign up with Email
+        a.btn.btn-lg.btn-block.btn-social.btn-github(href='/auth/github')
             i.fa.fa-github
-            | Sign in with Github
-        a.btn.btn-lg.btn-block.btn-facebook.btn-social(href='/auth/facebook')
-            i.fa.fa-facebook
-            | Sign in with Facebook
-        a.btn.btn-lg.btn-block.btn-google-plus.btn-social(href='/auth/google')
-            i.fa.fa-google-plus
-            | Sign in with Google
-        a.btn.btn-lg.btn-block.btn-linkedin.btn-social(href='/auth/linkedin')
-            i.fa.fa-linkedin
-            | Sign in with LinkedIn
-        a.btn.btn-lg.btn-block.btn-twitter.btn-social(href='/auth/twitter')
-            i.fa.fa-twitter
-            | Sign in with Twitter
+            | Sign up with GitHub
+        .spacer
+        hr
+        .spacer
+        h2 Are you a returning camper?
+          br
+          .button-spacer
+          | Sign in with one of these options:
+        a.btn.btn-lg.btn-block.btn-social.btn-primary(href='/email-signin')
+            i.fa.fa-envelope
+            | Sign in with Email
+        a.btn.btn-lg.btn-block.btn-social.btn-github(href='/auth/github')
+            i.fa.fa-github
+            | Sign in with GitHub
         br
         p
-            a(href="/email-signup") Or sign up using your email address here.
-        p
-            a(href="/email-signin") If you originally signed up using your email address, you can sign in here.
+            a(href="/deprecated-signin") Click here if you previously signed in using a different method.
+
+    script.
+      $(document).ready(function() {
+        var method = localStorage.getItem('lastSigninMethod'),
+          btnSelector = 'a.btn.btn-lg.btn-block.btn-social';
+        if (method) {
+          try {
+            var obj = JSON.parse(method);
+          } catch(e) {
+            console.error('Invalid sign in object stored', method);
+            return;
+          }
+          $.each($(btnSelector), function(i, item) {
+            if (
+              $(item).text() === obj.method &&
+              $(item).hasClass(obj.methodClass)
+            ) {
+              $(item).addClass('active');
+              $(item).attr('title', 'This is your last signin method');
+              return false;
+            }
+          });
+        }
+
+        $(btnSelector).click(function() {
+          var obj = {};
+          $(this).removeClass('active');
+          obj.methodClass = $(this).attr('class').split(' ').pop();
+          obj.method = $(this).text();
+          if(obj.method === "Sign in with Email" || obj.method === "Sign in with GitHub") {
+            localStorage.setItem('lastSigninMethod', JSON.stringify(obj));
+          } else {
+            localStorage.removeItem('lastSigninMethod');
+          }
+        });
+      });

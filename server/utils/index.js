@@ -1,13 +1,11 @@
 var cheerio = require('cheerio'),
     request = require('request'),
     MDNlinks = require('../../seed/bonfireMDNlinks'),
-    resources = require('./resources.json'),
-    nonprofits = require('../../seed/nonprofits.json');
+    resources = require('./resources.json');
 
 /**
  * Cached values
  */
-var allNonprofitNames;
 
 module.exports = {
   dasherize: function dasherize(name) {
@@ -44,17 +42,6 @@ module.exports = {
       ];
   },
 
-  allNonprofitNames: function() {
-    if (allNonprofitNames) {
-      return allNonprofitNames;
-    } else {
-      allNonprofitNames = nonprofits.map(function(elem) {
-        return {name: elem.name};
-      });
-      return allNonprofitNames;
-    }
-  },
-
   whichEnvironment: function() {
     return process.env.NODE_ENV;
   },
@@ -88,7 +75,7 @@ module.exports = {
 
       result.image = urlImage;
       result.description = description;
-      callback(null, result);
+      return callback(null, result);
     });
   },
 

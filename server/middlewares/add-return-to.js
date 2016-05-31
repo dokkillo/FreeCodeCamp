@@ -12,23 +12,33 @@ const pathsOfNoReturn = [
   'css'
 ];
 
+const pathsWhiteList = [
+  'news',
+  'challenges',
+  'map',
+  'news',
+  'commit'
+];
+
 const pathsOfNoReturnRegex = new RegExp(pathsOfNoReturn.join('|'), 'i');
+const whiteListRegex = new RegExp(pathsWhiteList.join('|'), 'i');
 
 export default function addReturnToUrl() {
   return function(req, res, next) {
     // Remember original destination before login.
     var path = req.path.split('/')[1];
 
-    if (req.method !== 'GET') {
+    if (
+      req.method !== 'GET' ||
+      pathsOfNoReturnRegex.test(path) ||
+      !whiteListRegex.test(path) ||
+      (/news/i).test(path) && (/hot/i).test(req.path)
+    ) {
       return next();
     }
-    if (pathsOfNoReturnRegex.test(path)) {
-      return next();
-    }
-    if (/\/stories\/\w+/i.test(req.path)) {
-      return next();
-    }
-    req.session.returnTo = req.path;
-    next();
+    req.session.returnTo = req.originalUrl === '/map-aside' ?
+      '/map' :
+      req.originalUrl;
+    return next();
   };
 }

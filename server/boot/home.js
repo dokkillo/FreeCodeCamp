@@ -1,7 +1,7 @@
 import { defaultProfileImage } from '../../common/utils/constantStrings.json';
 
 const message =
-  'Learn to Code and Build Projects for Nonprofits';
+  'Learn to Code and Help Nonprofits';
 
 module.exports = function(app) {
   var router = app.loopback.Router();
@@ -14,16 +14,16 @@ module.exports = function(app) {
       return next();
     }
     req.user.picture = defaultProfileImage;
-    req.user.save(function(err) {
+    return req.user.save(function(err) {
       if (err) { return next(err); }
-      next();
+      return next();
     });
   }
 
   function index(req, res) {
     if (req.user) {
-      return res.render('resources/get-started', { title: message });
+      return res.redirect('/challenges/current-challenge');
     }
-    res.render('home', { title: message });
+    return res.render('home', { title: message });
   }
 };

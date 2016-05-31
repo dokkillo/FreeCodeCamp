@@ -1,6 +1,6 @@
 import React, { PropTypes } from 'react';
 import { Link } from 'react-router';
-import { ListGroup, ListGroupItem, Panel } from 'react-bootstrap';
+import { ListGroup, ListGroupItem } from 'react-bootstrap';
 
 export default React.createClass({
   displayName: 'HikesMap',
@@ -11,13 +11,13 @@ export default React.createClass({
 
   render() {
     const {
-      hikes
+      hikes = [{}]
     } = this.props;
 
-    const vidElements = hikes.map(({ title, dashedName}) => {
+    const vidElements = hikes.map(({ title, dashedName }) => {
       return (
         <ListGroupItem key={ dashedName }>
-          <Link to={ `/hikes/${dashedName}` }>
+          <Link to={ `/videos/${dashedName}` }>
             <h3>{ title }</h3>
           </Link>
         </ListGroupItem>
@@ -26,9 +26,10 @@ export default React.createClass({
 
     return (
       <div>
-        <Panel>
+        <div className='text-center'>
           <h2>Welcome To Hikes!</h2>
-        </Panel>
+        </div>
+        <hr />
         <ListGroup>
           { vidElements }
         </ListGroup>

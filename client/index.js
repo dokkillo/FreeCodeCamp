@@ -1,49 +1,73 @@
-import unused from './es6-shims'; // eslint-disable-line
+import './es6-shims';
 import Rx from 'rx';
 import React from 'react';
-import Fetchr from 'fetchr';
-import debugFactory from 'debug';
+import debug from 'debug';
 import { Router } from 'react-router';
-import { history } from 'react-router/lib/BrowserHistory';
-import { hydrate } from 'thundercats';
-import { Render } from 'thundercats-react';
+import { routeReducer as routing, syncHistory } from 'react-router-redux';
+import { createHistory } from 'history';
 
-import { app$ } from '../common/app';
+import app$ from '../common/app';
+import provideStore from '../common/app/provide-store';
 
-const debug = debugFactory('fcc:client');
-const DOMContianer = document.getElementById('fcc');
-const catState = window.__fcc__.data || {};
-const services = new Fetchr({
-  xhrPath: '/services'
-});
+// client specific sagas
+import sagas from './sagas';
+
+// render to observable
+import render from '../common/app/utils/render';
+
+const log = debug('fcc:client');
+const DOMContainer = document.getElementById('fcc');
+const initialState = window.__fcc__.data;
+const csrfToken = window.__fcc__.csrf.token;
+initialState.app.csrfToken = csrfToken;
+
+const serviceOptions = { xhrPath: '/services', context: { _csrf: csrfToken } };
 
 Rx.config.longStackSupport = !!debug.enabled;
+const history = createHistory();
+const appLocation = history.createLocation(
+  location.pathname + location.search
+);
+const routingMiddleware = syncHistory(history);
+
+const devTools = window.devToolsExtension ? window.devToolsExtension() : f => f;
+const shouldRouterListenForReplays = !!window.devToolsExtension;
+
+const clientSagaOptions = { doc: document };
 
 // returns an observable
-app$(history)
-  .flatMap(
-    ({ AppCat }) => {
-      const appCat = AppCat(null, services);
-      return hydrate(appCat, catState)
-        .map(() => appCat);
-    },
-    ({ initialState }, appCat) => ({ initialState, appCat })
-  )
-  .flatMap(({ initialState, appCat }) => {
-    return Render(
-      appCat,
-      React.createElement(Router, initialState),
-      DOMContianer
+app$({
+  location: appLocation,
+  history,
+  serviceOptions,
+  initialState,
+  middlewares: [
+    routingMiddleware,
+    ...sagas.map(saga => saga(clientSagaOptions))
+  ],
+  reducers: { routing },
+  enhancers: [ devTools ]
+})
+  .flatMap(({ props, store }) => {
+
+    // because of weirdness in react-routers match function
+    // we replace the wrapped returned in props with the first one
+    // we passed in. This might be fixed in react-router 2.0
+    props.history = history;
+
+    if (shouldRouterListenForReplays && store) {
+      log('routing middleware listening for replays');
+      routingMiddleware.listenForReplays(store);
+    }
+
+    log('rendering');
+    return render(
+      provideStore(React.createElement(Router, props), store),
+      DOMContainer
     );
   })
   .subscribe(
-    () => {
-      debug('react rendered');
-    },
-    err => {
-      debug('an error has occured', err.stack);
-    },
-    () => {
-      debug('react closed subscription');
-    }
+    () => debug('react rendered'),
+    err => { throw err; },
+    () => debug('react closed subscription')
   );

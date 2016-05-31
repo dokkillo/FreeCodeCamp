@@ -1,1 +1,1 @@
-export { default as app$ } from './app-stream.jsx';
+export default from './create-app.jsx';
