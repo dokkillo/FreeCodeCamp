@@ -4,10 +4,12 @@ html(lang='en')
     if title
       title= title
     else
-      title Free Code Camp
+      title freeCodeCamp
     include partials/react-stylesheets
-  body.top-and-bottom-margins(style='overflow: hidden')
-    .container
-      #fcc!= markup
+  body.container.react-layout(style='overflow: hidden')
+    #fcc!= markup
     script!= state
+    script.
+      window.webpackManifest = !{JSON.stringify(chunkManifest || {})};
+    script(src=rev('/js', 'vendor-challenges.js'))
     script(src=rev('/js', 'bundle.js'))

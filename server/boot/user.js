@@ -2,24 +2,28 @@ import dedent from 'dedent';
 import moment from 'moment-timezone';
 import { Observable } from 'rx';
 import debugFactory from 'debug';
+import emoji from 'node-emoji';
 
 import {
   frontEndChallengeId,
   dataVisChallengeId,
   backEndChallengeId
 } from '../utils/constantStrings.json';
-
 import certTypes from '../utils/certTypes.json';
-
-import { ifNoUser401, ifNoUserRedirectTo } from '../utils/middleware';
+import {
+  ifNoUser401,
+  ifNoUserRedirectTo,
+  ifNotVerifiedRedirectToSettings
+} from '../utils/middleware';
 import { observeQuery } from '../utils/rx';
 import {
   prepUniqueDays,
   calcCurrentStreak,
   calcLongestStreak
 } from '../utils/user-stats';
-
-import { flashIfNotVerified } from '../utils/middleware';
+import supportedLanguages from '../../common/utils/supported-languages';
+import createNameIdMap from '../../common/utils/create-name-id-map';
+import { cachedMap } from '../utils/map';
 
 const debug = debugFactory('fcc:boot:user');
 const sendNonUserToMap = ifNoUserRedirectTo('/map');
@@ -83,25 +87,35 @@ function getChallengeGroup(challenge) {
   return 'challenges';
 }
 
-// buildDisplayChallenges(challengeMap: Object, tz: String) => Observable[{
+// buildDisplayChallenges(
+//   entities: { challenge: Object, challengeIdToName: Object },
+//   challengeMap: Object,
+//   tz: String
+// ) => Observable[{
 //   algorithms: Array,
 //   projects: Array,
 //   challenges: Array
 // }]
-function buildDisplayChallenges(challengeMap = {}, timezone) {
-  return Observable.from(Object.keys(challengeMap))
-    .map(challengeId => challengeMap[challengeId])
-    .map(challenge => {
-      let finalChallenge = { ...challenge };
-      if (challenge.completedDate) {
+function buildDisplayChallenges(
+  { challenge: challengeMap = {}, challengeIdToName },
+  userChallengeMap = {},
+  timezone
+) {
+  return Observable.from(Object.keys(userChallengeMap))
+    .map(challengeId => userChallengeMap[challengeId])
+    .map(userChallenge => {
+      const challengeId = userChallenge.id;
+      const challenge = challengeMap[ challengeIdToName[challengeId] ];
+      let finalChallenge = { ...userChallenge, ...challenge };
+      if (userChallenge.completedDate) {
         finalChallenge.completedDate = moment
-          .tz(challenge.completedDate, timezone)
+          .tz(userChallenge.completedDate, timezone)
           .format(dateFormat);
       }
 
-      if (challenge.lastUpdated) {
+      if (userChallenge.lastUpdated) {
         finalChallenge.lastUpdated = moment
-          .tz(challenge.lastUpdated, timezone)
+          .tz(userChallenge.lastUpdated, timezone)
           .format(dateFormat);
       }
 
@@ -117,14 +131,18 @@ function buildDisplayChallenges(challengeMap = {}, timezone) {
     .reduce((output, group) => ({ ...output, ...group}), {})
     .map(groups => ({
       algorithms: groups.algorithms || [],
-      projects: groups.projects || [],
-      challenges: groups.challenges || []
+      projects: groups.projects ? groups.projects.reverse() : [],
+      challenges: groups.challenges ? groups.challenges.reverse() : []
     }));
 }
 
 module.exports = function(app) {
-  var router = app.loopback.Router();
-  var User = app.models.User;
+  const router = app.loopback.Router();
+  const api = app.loopback.Router();
+  const User = app.models.User;
+  const Block = app.models.Block;
+  const { Email } = app.models;
+  const map$ = cachedMap(Block);
   function findUserByUsername$(username, fields) {
     return observeQuery(
       User,
@@ -142,86 +160,93 @@ module.exports = function(app) {
   router.get('/logout', function(req, res) {
     res.redirect(301, '/signout');
   });
+  router.get('/signup', getEmailSignup);
   router.get('/signin', getSignin);
   router.get('/signout', signout);
   router.get('/forgot', getForgot);
-  router.post('/forgot', postForgot);
+  api.post('/forgot', postForgot);
   router.get('/reset-password', getReset);
-  router.post('/reset-password', postReset);
+  api.post('/reset-password', postReset);
   router.get('/email-signup', getEmailSignup);
   router.get('/email-signin', getEmailSignin);
   router.get('/deprecated-signin', getDepSignin);
   router.get('/update-email', getUpdateEmail);
   router.get(
-    '/toggle-lockdown-mode',
+    '/delete-my-account',
     sendNonUserToMap,
-    toggleLockdownMode
+    showDelete
   );
-  router.get(
-    '/toggle-announcement-email-mode',
-    sendNonUserToMap,
-    toggleReceivesAnnouncementEmails
-  );
-  router.get(
-    '/toggle-notification-email-mode',
-    sendNonUserToMap,
-    toggleReceivesNotificationEmails
-  );
-  router.get(
-    '/toggle-quincy-email-mode',
-    sendNonUserToMap,
-    toggleReceivesQuincyEmails
-  );
-  router.post(
+  api.post(
     '/account/delete',
     ifNoUser401,
     postDeleteAccount
   );
-  router.get(
+  api.get(
     '/account',
     sendNonUserToMap,
     getAccount
   );
   router.get(
-    '/settings',
+    '/reset-my-progress',
     sendNonUserToMap,
-    flashIfNotVerified,
-    getSettings
+    showResetProgress
   );
-  router.get('/vote1', vote1);
-  router.get('/vote2', vote2);
+  api.post(
+    '/account/resetprogress',
+    ifNoUser401,
+    postResetProgress
+  );
+
+  api.get(
+    '/account/unlink/:social',
+    sendNonUserToMap,
+    getUnlinkSocial
+  );
 
   // Ensure these are the last routes!
-  router.get(
+  api.get(
     '/:username/front-end-certification',
     showCert.bind(null, certTypes.frontEnd)
   );
 
-  router.get(
+  api.get(
     '/:username/data-visualization-certification',
     showCert.bind(null, certTypes.dataVis)
   );
 
-  router.get(
+  api.get(
     '/:username/back-end-certification',
     showCert.bind(null, certTypes.backEnd)
   );
 
-  router.get(
+  api.get(
     '/:username/full-stack-certification',
     (req, res) => res.redirect(req.url.replace('full-stack', 'back-end'))
   );
 
-  router.get('/:username', returnUser);
+  router.get('/:username', showUserProfile);
+  router.get(
+    '/:username/report-user/',
+    sendNonUserToMap,
+    ifNotVerifiedRedirectToSettings,
+    getReportUserProfile
+  );
 
-  app.use(router);
+  api.post(
+    '/:username/report-user/',
+    ifNoUser401,
+    postReportUserProfile
+  );
+
+  app.use('/:lang', router);
+  app.use(api);
 
   function getSignin(req, res) {
     if (req.user) {
       return res.redirect('/');
     }
     return res.render('account/signin', {
-      title: 'Sign in to Free Code Camp using a Social Media Account'
+      title: 'Sign in to freeCodeCamp'
     });
   }
 
@@ -236,7 +261,7 @@ module.exports = function(app) {
       return res.redirect('/');
     }
     return res.render('account/deprecated-signin', {
-      title: 'Sign in to Free Code Camp using a Deprecated Login'
+      title: 'Sign in to freeCodeCamp using a Deprecated Login'
     });
   }
 
@@ -254,7 +279,7 @@ module.exports = function(app) {
       return res.redirect('/');
     }
     return res.render('account/email-signin', {
-      title: 'Sign in to Free Code Camp using your Email Address'
+      title: 'Sign in to freeCodeCamp using your Email Address'
     });
   }
 
@@ -263,7 +288,7 @@ module.exports = function(app) {
       return res.redirect('/');
     }
     return res.render('account/email-signup', {
-      title: 'Sign up for Free Code Camp using your Email Address'
+      title: 'Sign up for freeCodeCamp using your Email Address'
     });
   }
 
@@ -272,15 +297,73 @@ module.exports = function(app) {
     return res.redirect('/' + username);
   }
 
-  function getSettings(req, res) {
-    res.render('account/settings', {
-        title: 'Settings'
+  function getUnlinkSocial(req, res, next) {
+    const { user } = req;
+    const { username } = user;
+
+    let social = req.params.social;
+    if (!social) {
+      req.flash('errors', {
+        msg: 'No social account found'
+      });
+      return res.redirect('/' + username);
+    }
+
+    social = social.toLowerCase();
+    const validSocialAccounts = ['twitter', 'linkedin'];
+    if (validSocialAccounts.indexOf(social) === -1) {
+      req.flash('errors', {
+        msg: 'Invalid social account'
+      });
+      return res.redirect('/' + username);
+    }
+
+    if (!user[social]) {
+      req.flash('errors', {
+        msg: `No ${social} account associated`
+      });
+      return res.redirect('/' + username);
+    }
+
+    const query = {
+      where: {
+        provider: social
+      }
+    };
+
+    return user.identities(query, function(err, identities) {
+      if (err) { return next(err); }
+
+      // assumed user identity is unique by provider
+      let identity = identities.shift();
+      if (!identity) {
+        req.flash('errors', {
+          msg: 'No social account found'
+        });
+        return res.redirect('/' + username);
+      }
+
+      return identity.destroy(function(err) {
+        if (err) { return next(err); }
+
+        const updateData = { [social]: null };
+
+        return user.update$(updateData)
+          .subscribe(() => {
+            debug(`${social} has been unlinked successfully`);
+
+            req.flash('info', {
+              msg: `You\'ve successfully unlinked your ${social}.`
+            });
+            return res.redirect('/' + username);
+          }, next);
+      });
     });
   }
 
-  function returnUser(req, res, next) {
+  function showUserProfile(req, res, next) {
     const username = req.params.username.toLowerCase();
-    const { user, path } = req;
+    const { user } = req;
 
     // timezone of signed-in account
     // to show all date related components
@@ -298,10 +381,7 @@ module.exports = function(app) {
     return User.findOne$(query)
       .filter(userPortfolio => {
         if (!userPortfolio) {
-          req.flash('errors', {
-            msg: `We couldn't find a page for ${ path }`
-          });
-          res.redirect('/');
+          next();
         }
         return !!userPortfolio;
       })
@@ -336,7 +416,7 @@ module.exports = function(app) {
             return data;
           }, {});
 
-        if (userPortfolio.isCheater) {
+        if (userPortfolio.isCheater && !user) {
           req.flash('errors', {
             msg: dedent`
               Upon review, this account has been flagged for academic
@@ -346,7 +426,16 @@ module.exports = function(app) {
           });
         }
 
-        return buildDisplayChallenges(userPortfolio.challengeMap, timezone)
+        if (userPortfolio.bio) {
+          userPortfolio.bio = emoji.emojify(userPortfolio.bio);
+        }
+
+        return map$.map(({ entities }) => createNameIdMap(entities))
+          .flatMap(entities => buildDisplayChallenges(
+            entities,
+            userPortfolio.challengeMap,
+            timezone
+          ))
           .map(displayChallenges => ({
             ...userPortfolio,
             ...displayChallenges,
@@ -354,7 +443,8 @@ module.exports = function(app) {
             calender,
             github: userPortfolio.githubURL,
             moment,
-            encodeFcc
+            encodeFcc,
+            supportedLanguages
           }));
       })
       .doOnNext(data => {
@@ -432,7 +522,7 @@ module.exports = function(app) {
               certViews[certType],
               {
                 username: user.username,
-                date: moment(new Date(completedDate)).format('MMMM, Do YYYY'),
+                date: moment(new Date(completedDate)).format('MMMM D, YYYY'),
                 name: user.name
               }
             );
@@ -446,60 +536,8 @@ module.exports = function(app) {
       );
   }
 
-  function toggleLockdownMode(req, res, next) {
-    const { user } = req;
-    user.update$({ isLocked: !user.isLocked })
-      .subscribe(
-        () => {
-          req.flash('info', {
-            msg: 'We\'ve successfully updated your Privacy preferences.'
-          });
-          return res.redirect('/settings');
-        },
-        next
-      );
-  }
-
-  function toggleReceivesAnnouncementEmails(req, res, next) {
-    const { user } = req;
-    return user.update$({ sendMonthlyEmail: !user.sendMonthlyEmail })
-      .subscribe(
-        () => {
-          req.flash('info', {
-            msg: 'We\'ve successfully updated your Email preferences.'
-          });
-          return res.redirect('/settings');
-        },
-        next
-      );
-  }
-
-  function toggleReceivesQuincyEmails(req, res, next) {
-    const { user } = req;
-    return user.update$({ sendQuincyEmail: !user.sendQuincyEmail })
-      .subscribe(
-        () => {
-          req.flash('info', {
-            msg: 'We\'ve successfully updated your Email preferences.'
-          });
-          return res.redirect('/settings');
-        },
-        next
-      );
-  }
-
-  function toggleReceivesNotificationEmails(req, res, next) {
-    const { user } = req;
-    return user.update$({ sendNotificationEmail: !user.sendNotificationEmail })
-      .subscribe(
-        () => {
-          req.flash('info', {
-            msg: 'We\'ve successfully updated your Email preferences.'
-          });
-          return res.redirect('/settings');
-        },
-        next
-      );
+  function showDelete(req, res) {
+    return res.render('account/delete', { title: 'Delete My Account!' });
   }
 
   function postDeleteAccount(req, res, next) {
@@ -508,6 +546,35 @@ module.exports = function(app) {
       req.logout();
       req.flash('info', { msg: 'You\'ve successfully deleted your account.' });
       return res.redirect('/');
+    });
+  }
+
+  function showResetProgress(req, res) {
+    return res.render('account/reset-progress', { title: 'Reset My Progress!'
+    });
+  }
+
+  function postResetProgress(req, res, next) {
+    User.findById(req.user.id, function(err, user) {
+      if (err) { return next(err); }
+      return user.updateAttributes({
+        progressTimestamps: [{
+          timestamp: Date.now()
+        }],
+        currentStreak: 0,
+        longestStreak: 0,
+        currentChallengeId: '',
+        isBackEndCert: false,
+        isFullStackCert: false,
+        isDataVisCert: false,
+        isFrontEndCert: false,
+        challengeMap: {},
+        challegesCompleted: []
+      }, function(err) {
+        if (err) { return next(err); }
+        req.flash('info', { msg: 'You\'ve successfully reset your progress.' });
+        return res.redirect('/');
+      });
     });
   }
 
@@ -579,33 +646,54 @@ module.exports = function(app) {
     });
   }
 
-  function vote1(req, res, next) {
-    if (req.user) {
-      req.user.tshirtVote = 1;
-      req.user.save(function(err) {
-        if (err) { return next(err); }
-
-        req.flash('success', { msg: 'Thanks for voting!' });
-        return res.redirect('/map');
-      });
-    } else {
-      req.flash('error', { msg: 'You must be signed in to vote.' });
-      res.redirect('/map');
-    }
+  function getReportUserProfile(req, res) {
+    const username = req.params.username.toLowerCase();
+    return res.render('account/report-profile', {
+      title: 'Report User',
+      username
+    });
   }
 
-  function vote2(req, res, next) {
-    if (req.user) {
-      req.user.tshirtVote = 2;
-      req.user.save(function(err) {
-        if (err) { return next(err); }
+  function postReportUserProfile(req, res, next) {
+    const { user } = req;
+    const { username } = req.params;
+    const report = req.sanitize('reportDescription').trimTags();
 
-        req.flash('success', { msg: 'Thanks for voting!' });
-        return res.redirect('/map');
+    if (!username || !report || report === '') {
+      req.flash('errors', {
+        msg: 'Oops, something is not right please re-check your submission.'
       });
-    } else {
-      req.flash('error', {msg: 'You must be signed in to vote.'});
-      res.redirect('/map');
+      return next();
     }
+
+    return Email.send$({
+      type: 'email',
+      to: 'Team@FreeCodeCamp.com',
+      cc: user.email,
+      from: 'Team@FreeCodeCamp.com',
+      subject: 'Abuse Report : Reporting ' + username + '\'s profile.',
+      text: dedent(`
+        Hello Team,\n
+        This is to report the profile of ${username}.\n
+        Report Details:\n
+        ${report}\n\n
+        Reported by:
+        Username: ${user.username}
+        Name: ${user.name}
+        Email: ${user.email}\n
+        Thanks and regards,
+        ${user.name}
+      `)
+    }, err => {
+      if (err) {
+        err.redirectTo = '/' + username;
+        return next(err);
+      }
+
+      req.flash('info', {
+        msg: 'A report was sent to the team with ' + user.email + ' in copy.'
+      });
+      return res.redirect('/');
+    });
   }
 };

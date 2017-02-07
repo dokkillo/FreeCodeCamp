@@ -72,7 +72,7 @@ if (typeof DEBUG === 'undefined') { DEBUG = true; }
         }
       }
       j -= 1;
-    } while (j !== 0);
+    } while (j >= 0);
 
     return false;
   }
@@ -88,8 +88,8 @@ if (typeof DEBUG === 'undefined') { DEBUG = true; }
       }
       if (character === '/' || character === '*') {
         // looks like a comment, go back one to confirm or not
-        --index;
-        if (character === '/') {
+        var prevCharacter = line.substr(index - 1, 1);
+        if (prevCharacter === '/') {
           // we've found a comment, so let's exit and ignore this line
           DEBUG && debug('- exit: part of a comment'); // jshint ignore:line
           return true;
@@ -358,8 +358,10 @@ if (typeof DEBUG === 'undefined') { DEBUG = true; }
                 index++;
 
                 if (index === line.length && lineNum < (lines.length-1)) {
-                  lineNum++;
-                  line = lines[lineNum];
+                  do {
+                    lineNum++;
+                    line = lines[lineNum];
+                  } while (line.length === 0);
                   DEBUG && debug(line); // jshint ignore:line
                   index = 0;
                 }

@@ -53,6 +53,11 @@ module.exports = function(app) {
   User.beforeRemote('create', function(ctx, user, next) {
     var body = ctx.req.body;
     if (body) {
+      // this is workaround for preventing a server crash
+      // refer strongloop/loopback/#1364
+      if (body.password === '') {
+        body.password = null;
+      }
       body.emailVerified = false;
     }
     next();
@@ -70,7 +75,7 @@ module.exports = function(app) {
       type: 'email',
       to: user.email,
       from: 'Team@freecodecamp.com',
-      subject: 'Welcome to Free Code Camp!',
+      subject: 'Welcome to freeCodeCamp!',
       protocol: isDev ? null : 'https',
       host: isDev ? 'localhost' : 'freecodecamp.com',
       port: isDev ? null : 443,

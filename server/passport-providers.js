@@ -1,7 +1,9 @@
 var successRedirect = '/';
 var failureRedirect = '/signin';
 var linkFailureRedirect = '/account';
-module.exports = {
+var githubProfileSuccessRedirect = '/settings';
+
+export default {
   local: {
     provider: 'local',
     module: 'passport-local',
@@ -142,7 +144,6 @@ module.exports = {
     failureRedirect: failureRedirect,
     clientID: process.env.GITHUB_ID,
     clientSecret: process.env.GITHUB_SECRET,
-    scope: ['email'],
     failureFlash: true
   },
   'github-link': {
@@ -152,12 +153,14 @@ module.exports = {
     authPath: '/link/github',
     callbackURL: '/auth/github/callback/link',
     callbackPath: '/auth/github/callback/link',
-    successRedirect: successRedirect,
+    successRedirect: githubProfileSuccessRedirect,
     failureRedirect: linkFailureRedirect,
     clientID: process.env.GITHUB_ID,
     clientSecret: process.env.GITHUB_SECRET,
-    scope: ['email'],
     link: true,
-    failureFlash: true
+    failureFlash: true,
+    successFlash: [ 'We\'ve updated your profile based ',
+                    'on your your GitHub account.'
+                  ].join('')
   }
 };

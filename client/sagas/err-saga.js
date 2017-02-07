@@ -1,20 +1,11 @@
-//   () =>
-//     (store: Store) =>
-//     (next: (action: Action) => Object) =>
-//     errSaga(action: Action) => Object|Void
-export default () => ({ dispatch }) => next => {
-  return function errorSaga(action) {
-    const result = next(action);
-    if (!action.error) { return result; }
+import { makeToast } from '../../common/app/toasts/redux/actions';
 
-    console.error(action.error);
-    return dispatch({
-      type: 'app.makeToast',
-      payload: {
-        type: 'error',
-        title: 'Oops, something went wrong',
-        message: 'Something went wrong, please try again later'
-      }
-    });
-  };
-};
+export default function errorSaga(action$) {
+  return action$
+    .filter(({ error }) => !!error)
+    .map(({ error }) => error)
+    .doOnNext(error => console.error(error))
+    .map(() => makeToast({
+      message: 'Something went wrong, please try again later'
+    }));
+}
